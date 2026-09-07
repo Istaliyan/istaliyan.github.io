@@ -8,7 +8,6 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://istaliyan.github.io',
-  base: '/portfolio',
   output: 'static',
   trailingSlash: 'always',
   i18n: {

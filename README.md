@@ -9,7 +9,6 @@ npm install
 npm run dev
 ```
 
-The configured local base path is `/portfolio/`.
 
 ## Replace before publishing
 
