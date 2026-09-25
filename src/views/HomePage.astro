@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import { Icon } from 'astro-icon/components';
 import HeroShader from '../components/HeroShader.astro';
 import ProjectGrid from '../components/ProjectGrid.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -8,6 +9,31 @@ import { localePath, site, type Locale } from '../lib/site';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const projects = (await getCollection('projects')).filter((project) => project.data.featured).slice(0, 3);
+const capabilityIcons: Record<string, string> = {
+  'ML / GeoAI': 'capabilities/geoai',
+  Geoespacial: 'capabilities/map',
+  Teledetección: 'capabilities/satellite',
+  'Nubes de puntos / 3D': 'capabilities/cube',
+  'Ingeniería de datos': 'capabilities/database',
+  'Web / Visualización': 'capabilities/browser',
+  Infraestructura: 'capabilities/server',
+  Geospatial: 'capabilities/map',
+  'Remote Sensing': 'capabilities/satellite',
+  'Point Clouds / 3D': 'capabilities/cube',
+  'Data Engineering': 'capabilities/database',
+  'Web / Visualization': 'capabilities/browser',
+  Infrastructure: 'capabilities/server',
+};
+const technologyIcons: Record<string, string> = {
+  Python: 'logos:python', PyTorch: 'logos:pytorch-icon', 'scikit-learn': 'capabilities/geoai',
+  MLflow: 'capabilities/geoai', OpenCV: 'logos:opencv',
+  GDAL: 'capabilities/map', Rasterio: 'capabilities/map', QGIS: 'capabilities/map', GeoPandas: 'capabilities/map', PostGIS: 'logos:postgresql',
+  'Sentinel-2': 'capabilities/satellite', STAC: 'capabilities/satellite', 'Planetary Computer': 'capabilities/satellite', Copernicus: 'capabilities/satellite',
+  Open3D: 'capabilities/cube', CloudCompare: 'capabilities/cube', Cesium: 'capabilities/cube', Potree: 'capabilities/cube',
+  SQL: 'capabilities/database', PostgreSQL: 'logos:postgresql', Airflow: 'logos:airflow-icon', Docker: 'logos:docker-icon',
+  TypeScript: 'logos:typescript-icon', Astro: 'logos:astro-icon', WebGL: 'capabilities/browser', CesiumJS: 'capabilities/cube', OpenLayers: 'logos:openlayers',
+  'GitHub Actions': 'logos:github-actions', AWS: 'logos:aws', Linux: 'logos:linux-tux',
+};
 
 const copy = locale === 'es' ? {
   description: 'Portfolio de ingeniería geoespacial, machine learning, teledetección y visualización 3D.',
@@ -106,12 +132,20 @@ const copy = locale === 'es' ? {
       <div class="profile-capabilities">
         {copy.capabilities.map(([area, core, supporting, evidence]) => (
           <article>
-            <h3>{area}</h3>
+            <div class="capability-heading">
+              <Icon class="capability-icon" name={capabilityIcons[area]} size="1.3rem" aria-hidden="true" focusable="false" />
+              <h3>{area}</h3>
+            </div>
             <dl>
-              <div><dt>{copy.capabilityColumns[0]}</dt><dd>{core}</dd></div>
-              <div><dt>{copy.capabilityColumns[1]}</dt><dd>{supporting}</dd></div>
+              <div><dt>{copy.capabilityColumns[0]}</dt><dd class="technology-chips">{core.split(', ').map((technology) => <span><Icon class="technology-icon" name={technologyIcons[technology]} size="0.75rem" aria-hidden="true" focusable="false" />{technology}</span>)}</dd></div>
+              <div><dt>{copy.capabilityColumns[1]}</dt><dd class="technology-chips technology-chips--supporting">{supporting.split(', ').map((technology) => <span><Icon class="technology-icon" name={technologyIcons[technology]} size="0.75rem" aria-hidden="true" focusable="false" />{technology}</span>)}</dd></div>
             </dl>
-            <span>{evidence}</span>
+            <div class="capability-evidence" aria-label={evidence}>
+              <div class="evidence-scale" aria-hidden="true">
+                {Array.from({ length: 6 }, (_, index) => <i class:list={{ active: index < Number(evidence.match(/\d+/)?.[0]) }}></i>)}
+              </div>
+              <span>{evidence}</span>
+            </div>
           </article>
         ))}
       </div>
@@ -179,13 +213,25 @@ const copy = locale === 'es' ? {
   .profile-section > .eyebrow { width: min(100%, 64rem); justify-content: center; margin: 0 auto 1.5rem; }
   .profile-matrix-title { margin: 0 auto 2.5rem; color: var(--color-forest); font-family: var(--font-serif); font-size: clamp(1.55rem, 3.3vw, 2.5rem); font-weight: 480; letter-spacing: -0.04em; line-height: 1; text-align: center; white-space: nowrap; }
   .profile-capabilities { width: min(100%, 64rem); margin-inline: auto; border-top: 1px solid var(--color-forest); }
-  .profile-capabilities article { display: grid; grid-template-columns: minmax(10rem, 0.7fr) minmax(0, 1.6fr) auto; align-items: center; gap: 1.5rem; padding-block: 0.9rem; border-bottom: 1px solid var(--color-line); }
+  .profile-capabilities article { display: grid; grid-template-columns: minmax(10rem, 0.7fr) minmax(0, 1.6fr) auto; align-items: center; gap: 1.5rem; padding-block: 1rem; border-bottom: 1px solid var(--color-line); transition: background-color 180ms ease, padding-inline 180ms ease; }
+  .profile-capabilities article:hover { padding-inline: 0.65rem; background: color-mix(in srgb, var(--color-forest) 5%, transparent); }
+  .capability-heading { display: flex; align-items: center; gap: 0.6rem; }
+  :global(.capability-icon) { flex: none; color: color-mix(in srgb, var(--color-forest) 58%, transparent); transition: color 180ms ease; }
+  .profile-capabilities article:hover :global(.capability-icon) { color: var(--color-forest); }
   .profile-capabilities h3 { margin: 0; color: var(--color-forest); font-family: var(--font-serif); font-size: 1.3rem; font-weight: 520; letter-spacing: -0.025em; }
   .profile-capabilities dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin: 0; }
   .profile-capabilities dl div { min-width: 0; }
   .profile-capabilities dt { margin-bottom: 0.25rem; color: var(--color-forest-light); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
   .profile-capabilities dd { margin: 0; color: var(--color-muted); font-size: 0.76rem; line-height: 1.5; }
-  .profile-capabilities > article > span { color: var(--color-signal); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap; }
+  .technology-chips { display: flex; flex-wrap: wrap; gap: 0.32rem; }
+  .technology-chips > span { display: inline-flex; flex-flow: row nowrap; align-items: center; justify-content: flex-start; gap: 0.28rem; padding: 0.19rem 0.38rem; color: var(--color-forest); font-size: 0.66rem; line-height: 1.25; white-space: nowrap; }
+  :global(.technology-icon) { display: block; flex: 0 0 auto; opacity: 0.58; filter: brightness(0) saturate(100%) invert(20%) sepia(24%) saturate(1360%) hue-rotate(109deg) brightness(92%) contrast(91%); transition: opacity 180ms ease; }
+  .profile-capabilities article:hover :global(.technology-icon) { opacity: 1; }
+  .technology-chips--supporting > span { color: var(--color-muted); }
+  .capability-evidence { display: grid; justify-items: end; gap: 0.35rem; color: var(--color-signal); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap; }
+  .evidence-scale { display: flex; gap: 0.18rem; }
+  .evidence-scale i { display: block; width: 0.85rem; height: 0.16rem; background: var(--color-line); }
+  .evidence-scale i.active { background: var(--color-signal); }
   .projects-head { margin-bottom: 2.8rem; text-align: center; }
   .projects-head .eyebrow { justify-content: center; margin: 0 0 1rem; color: color-mix(in srgb, var(--color-paper) 72%, transparent); }
   .projects-head .eyebrow::before { background: var(--color-signal); }
@@ -214,7 +260,7 @@ const copy = locale === 'es' ? {
     .collaboration-email { width: 100%; }
     .profile-capabilities article { grid-template-columns: 1fr auto; gap: 1rem; }
     .profile-capabilities dl { grid-column: 1 / -1; grid-row: 2; }
-    .profile-capabilities > article > span { grid-column: 2; grid-row: 1; }
+    .capability-evidence { grid-column: 2; grid-row: 1; }
   }
   @media (max-width: 520px) {
     .profile-capabilities dl { grid-template-columns: 1fr; gap: 1rem; }
