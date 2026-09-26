@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import { Icon } from 'astro-icon/components';
 import HeroShader from '../components/HeroShader.astro';
 import ProjectGrid from '../components/ProjectGrid.astro';
+import TerrainSampler from '../components/TerrainSampler.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { localePath, site, type Locale } from '../lib/site';
 
@@ -102,12 +103,7 @@ const copy = locale === 'es' ? {
           <a class="button-primary" href={localePath(locale, '/projects')}>{copy.seeProjects}<span aria-hidden="true">↗</span></a>
         </div>
       </div>
-      <div class="hero-instrument blueprint-card" aria-hidden="true">
-        <div class="instrument-meta"><span>DATUM / ETRS89</span><span>ALT / 691M</span></div>
-        <div class="orbital"><div class="orbital-point"></div></div>
-        <div class="instrument-coords">41° 39′ 08″ N<br />04° 43′ 43″ W</div>
-        <div class="instrument-scale"><span>0</span><span>25</span><span>50 KM</span></div>
-      </div>
+      <TerrainSampler locale={locale} />
       <div class="hero-foot"><span>PORTFOLIO / 2026</span><span>SCROLL ↓</span></div>
     </div>
   </section>
@@ -176,16 +172,6 @@ const copy = locale === 'es' ? {
   .hero h1 em { color: var(--color-forest); font-weight: 430; }
   .hero .lede { max-width: 37rem; margin: 1.5rem 0 0; }
   .hero-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.7rem; }
-  .hero-instrument { position: relative; z-index: 2; isolation: isolate; aspect-ratio: 0.8; padding: 1.1rem; background: rgba(244, 240, 231, 0.3); backdrop-filter: blur(3px); }
-  .instrument-meta { position: relative; z-index: 2; display: flex; justify-content: space-between; color: var(--color-muted); font-size: 0.55rem; font-weight: 700; letter-spacing: 0.09em; }
-  .orbital { position: absolute; z-index: 1; inset: 15%; border: 1px solid rgba(21, 61, 48, 0.44); border-radius: 50%; background: radial-gradient(circle, rgba(244, 240, 231, 0.13), transparent 68%); filter: drop-shadow(0 0 6px rgba(244, 240, 231, 0.62)); }
-  .orbital::before,
-  .orbital::after { position: absolute; border: 1px solid rgba(21, 61, 48, 0.24); border-radius: inherit; content: ""; }
-  .orbital::before { inset: 15%; }
-  .orbital::after { inset: 35%; }
-  .orbital-point { position: absolute; top: 11%; right: 13%; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--color-signal); box-shadow: 0 0 0 7px rgba(189, 107, 67, 0.1); animation: pulse-point 2.8s ease-in-out infinite; }
-  .instrument-coords { position: absolute; z-index: 2; top: 46%; right: 0; left: 0; color: var(--color-forest); font-family: var(--font-serif); font-size: clamp(1.2rem, 2.2vw, 2rem); line-height: 1.15; text-align: center; }
-  .instrument-scale { position: absolute; z-index: 2; right: 1rem; bottom: 1rem; left: 1rem; display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 3px double var(--color-forest); color: var(--color-muted); font-size: 0.55rem; font-weight: 700; }
   .hero-foot { position: absolute; z-index: 2; right: 0; bottom: 1rem; left: 0; display: flex; justify-content: space-between; color: var(--color-muted); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; }
   .work-section {
     position: relative;
@@ -250,10 +236,8 @@ const copy = locale === 'es' ? {
   .collaboration-email strong { overflow-wrap: anywhere; font-family: var(--font-serif); font-size: clamp(1rem, 1.7vw, 1.3rem); font-weight: 480; letter-spacing: -0.02em; }
   .collaboration-arrow { position: absolute; top: 50%; right: 1rem; color: var(--color-signal); font-size: 1rem; transform: translateY(-50%); }
   .collaboration-email:hover { border-color: var(--color-paper); background: color-mix(in srgb, var(--color-paper) 8%, transparent); transform: translateY(-2px); }
-  @keyframes pulse-point { 50% { transform: scale(1.2); box-shadow: 0 0 0 12px rgba(189, 107, 67, 0.05); } }
   @media (max-width: 900px) {
     .hero { min-height: auto; grid-template-columns: 1fr; }
-    .hero-instrument { width: min(100%, 24rem); aspect-ratio: 1.2; }
   }
   @media (max-width: 650px) {
     .collaboration-grid { grid-template-columns: 1fr; gap: 1.5rem; }

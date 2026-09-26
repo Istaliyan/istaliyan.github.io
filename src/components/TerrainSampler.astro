@@ -1,0 +1,652 @@
+---
+import type { Locale } from '../lib/site';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = locale === 'es' ? {
+  title: 'Clasificador de terreno',
+  live: 'En vivo',
+  elevation: 'Elevación',
+  slope: 'Pendiente',
+  prediction: 'Clase predicha',
+  profile: 'Perfil y confianza / 5 km',
+  hint: 'Terreno sintético · Inferencia simulada · Mueve el cursor',
+  interaction: 'Clasificador de terreno interactivo con inferencia simulada. Mueve el cursor por la cabecera o usa las flechas para explorar.',
+  profileLabel: 'Perfil del terreno con banda de confianza de clasificación',
+  classes: ['Vegetación', 'Cresta', 'Roca expuesta'],
+} : {
+  title: 'Terrain classifier',
+  live: 'Live',
+  elevation: 'Elevation',
+  slope: 'Slope',
+  prediction: 'Predicted class',
+  profile: 'Profile and confidence / 5 km',
+  hint: 'Synthetic terrain · Simulated inference · Move cursor',
+  interaction: 'Interactive terrain classifier with simulated inference. Move the pointer across the hero or use the arrow keys to explore.',
+  profileLabel: 'Terrain profile with classification confidence band',
+  classes: ['Vegetation', 'Ridgeline', 'Exposed rock'],
+};
+---
+
+<div
+  class="hero-instrument blueprint-card"
+  data-terrain-sampler
+  data-class-vegetation={copy.classes[0]}
+  data-class-ridge={copy.classes[1]}
+  data-class-rock={copy.classes[2]}
+  tabindex="0"
+  aria-label={copy.interaction}
+>
+  <header class="sampler-header">
+    <span>{copy.title} / 024</span>
+    <span class="sampler-status"><i aria-hidden="true"></i>{copy.live}</span>
+  </header>
+
+  <dl class="sampler-metrics">
+    <div>
+      <dt>{copy.elevation}</dt>
+      <dd><span data-sample-elevation>691</span> <small>m</small></dd>
+    </div>
+    <div>
+      <dt>{copy.slope}</dt>
+      <dd><span data-sample-slope>18.4</span><small>°</small></dd>
+    </div>
+    <div class="classification">
+      <dt>{copy.prediction}</dt>
+      <dd class="surface-value">
+        <span data-sample-surface>{copy.classes[0]}</span>
+        <strong data-sample-confidence>64%</strong>
+      </dd>
+      <div class="class-probabilities">
+        {copy.classes.map((className, index) => (
+          <div>
+            <span>{className}</span>
+            <i aria-hidden="true"><b data-class-bar={index}></b></i>
+            <output data-class-probability={index}>{[64, 23, 13][index]}%</output>
+          </div>
+        ))}
+      </div>
+    </div>
+  </dl>
+
+  <div class="profile">
+    <div class="profile-label">{copy.profile}</div>
+    <canvas data-terrain-profile role="img" aria-label={copy.profileLabel}></canvas>
+    <div class="profile-scale" aria-hidden="true"><span>0</span><span>2.5</span><span>5 KM</span></div>
+  </div>
+
+  <div class="sampler-footer">
+    <span data-sample-latitude>41.6522° N</span>
+    <span data-sample-longitude>4.7287° W</span>
+  </div>
+  <p class="sampler-hint">{copy.hint}</p>
+</div>
+
+<script>
+  type Point = [number, number];
+
+  const clamp = (value: number, minimum: number, maximum: number) => (
+    Math.min(maximum, Math.max(minimum, value))
+  );
+  const fract = (value: number) => value - Math.floor(value);
+  const mix = (a: number, b: number, amount: number) => a + (b - a) * amount;
+  const smoothstep = (edgeA: number, edgeB: number, value: number) => {
+    const amount = clamp((value - edgeA) / (edgeB - edgeA), 0, 1);
+    return amount * amount * (3 - 2 * amount);
+  };
+
+  const gradientHash = ([x, y]: Point): Point => [
+    -1 + 2 * fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453123),
+    -1 + 2 * fract(Math.sin(x * 269.5 + y * 183.3) * 43758.5453123),
+  ];
+
+  const gradientNoise = ([x, y]: Point) => {
+    const cellX = Math.floor(x);
+    const cellY = Math.floor(y);
+    const localX = fract(x);
+    const localY = fract(y);
+    const blendX = localX ** 3 * (localX * (localX * 6 - 15) + 10);
+    const blendY = localY ** 3 * (localY * (localY * 6 - 15) + 10);
+    const dot = (offsetX: number, offsetY: number) => {
+      const hash = gradientHash([cellX + offsetX, cellY + offsetY]);
+      return hash[0] * (localX - offsetX) + hash[1] * (localY - offsetY);
+    };
+    return mix(
+      mix(dot(0, 0), dot(1, 0), blendX),
+      mix(dot(0, 1), dot(1, 1), blendX),
+      blendY,
+    );
+  };
+
+  const rotateScale = ([x, y]: Point, a: number, b: number, scale: number, offset: Point): Point => [
+    (a * x + b * y) * scale + offset[0],
+    (-b * x + a * y) * scale + offset[1],
+  ];
+
+  const fbm = (point: Point) => {
+    let position = point;
+    let value = 0;
+    let amplitude = 0.52;
+    for (let index = 0; index < 5; index += 1) {
+      value += amplitude * gradientNoise(position);
+      position = rotateScale(position, 0.8, 0.6, 2.02, [7.3, 5.1]);
+      amplitude *= 0.48;
+    }
+    return value;
+  };
+
+  const ridgedFbm = (point: Point) => {
+    let position = point;
+    let value = 0;
+    let amplitude = 0.52;
+    let weight = 1;
+    for (let index = 0; index < 5; index += 1) {
+      let ridge = 1 - Math.abs(gradientNoise(position) * 1.75);
+      ridge = Math.max(ridge, 0) ** 2 * weight;
+      value += ridge * amplitude;
+      weight = clamp(ridge * 1.55, 0.12, 1);
+      position = rotateScale(position, 0.84, 0.54, 2.04, [5.8, 9.2]);
+      amplitude *= 0.48;
+    }
+    return value;
+  };
+
+  const terrainHeight = ([x, y]: Point) => {
+    const warp: Point = [
+      gradientNoise([x * 0.24 + 2.7, y * 0.24 + 8.4]),
+      gradientNoise([x * 0.24 + 9.1, y * 0.24 + 3.6]),
+    ];
+    const continental = fbm([x * 0.32 + warp[0] * 0.42, y * 0.32 + warp[1] * 0.42]);
+    const mountainMask = smoothstep(-0.22, 0.26, continental);
+    const mountains = ridgedFbm([
+      x * 0.68 + warp[0] * 0.86 + 4.7,
+      y * 0.68 + warp[1] * 0.86 + 8.1,
+    ]);
+    const detail = gradientNoise([
+      x * 3.15 + warp[0] * 1.25 + 1.8,
+      y * 3.15 + warp[1] * 1.25 + 6.4,
+    ]);
+    const fineDetail = gradientNoise([
+      x * 4.8 + warp[0] * 1.7 + 8.2,
+      y * 4.8 + warp[1] * 1.7 + 2.9,
+    ]);
+    return -0.1
+      + continental * 0.76
+      + mountainMask * (mountains - 0.28) * 0.74
+      + detail * 0.055
+      + fineDetail * 0.025;
+  };
+
+  const initializeTerrainSampler = (sampler: HTMLElement) => {
+    const canvas = sampler.querySelector<HTMLCanvasElement>('[data-terrain-profile]');
+    const elevationOutput = sampler.querySelector<HTMLElement>('[data-sample-elevation]');
+    const slopeOutput = sampler.querySelector<HTMLElement>('[data-sample-slope]');
+    const surfaceOutput = sampler.querySelector<HTMLElement>('[data-sample-surface]');
+    const confidenceOutput = sampler.querySelector<HTMLElement>('[data-sample-confidence]');
+    const classBars = sampler.querySelectorAll<HTMLElement>('[data-class-bar]');
+    const classOutputs = sampler.querySelectorAll<HTMLOutputElement>('[data-class-probability]');
+    const latitudeOutput = sampler.querySelector<HTMLElement>('[data-sample-latitude]');
+    const longitudeOutput = sampler.querySelector<HTMLElement>('[data-sample-longitude]');
+    const hero = sampler.closest<HTMLElement>('.hero-shell');
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context || !hero || !elevationOutput || !slopeOutput
+      || !surfaceOutput || !confidenceOutput || !latitudeOutput || !longitudeOutput) return;
+
+    const selection = { x: 0.56, y: 0.46 };
+    const travel = { x: 0, z: 0 };
+    let drawRequest = 0;
+
+    const scheduleDraw = () => {
+      if (drawRequest) return;
+      drawRequest = requestAnimationFrame(draw);
+    };
+
+    const resizeCanvas = () => {
+      const bounds = canvas.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+      const width = Math.max(1, Math.round(bounds.width * pixelRatio));
+      const height = Math.max(1, Math.round(bounds.height * pixelRatio));
+      if (canvas.width === width && canvas.height === height) return;
+      canvas.width = width;
+      canvas.height = height;
+      scheduleDraw();
+    };
+
+    const draw = () => {
+      drawRequest = 0;
+      const width = canvas.width;
+      const height = canvas.height;
+      if (!width || !height) return;
+
+      const worldX = -2.6 + selection.x * 6.8;
+      const worldZ = -3.3 + (1 - selection.y) * 6.2;
+      const terrainX = worldX + travel.x;
+      const terrainZ = worldZ + travel.z;
+      const pointHeight = terrainHeight([terrainX, terrainZ]);
+      const elevation = clamp(Math.round(620 + pointHeight * 920), 0, 2400);
+      const epsilon = 0.035;
+      const derivativeX = (
+        terrainHeight([terrainX + epsilon, terrainZ])
+        - terrainHeight([terrainX - epsilon, terrainZ])
+      ) / (epsilon * 2);
+      const derivativeZ = (
+        terrainHeight([terrainX, terrainZ + epsilon])
+        - terrainHeight([terrainX, terrainZ - epsilon])
+      ) / (epsilon * 2);
+      const slope = Math.atan(Math.hypot(derivativeX, derivativeZ) * 1.4) * 180 / Math.PI;
+      const surfaceField = fbm([terrainX * 1.35 + 3.1, terrainZ * 1.35 + 7.7]);
+      const logits = [
+        surfaceField * 3.4 - slope / 34 + 0.8,
+        (elevation - 680) / 360 + slope / 32 - 1.1,
+        slope / 20 - surfaceField * 1.8 - 1.2,
+      ];
+      const largestLogit = Math.max(...logits);
+      const scores = logits.map((logit) => Math.exp(logit - largestLogit));
+      const scoreTotal = scores.reduce((total, score) => total + score, 0);
+      const probabilities = scores.map((score) => score / scoreTotal);
+      const predictedIndex = probabilities.indexOf(Math.max(...probabilities));
+      const confidence = probabilities[predictedIndex];
+      const classes = [
+        sampler.dataset.classVegetation,
+        sampler.dataset.classRidge,
+        sampler.dataset.classRock,
+      ];
+
+      elevationOutput.textContent = elevation.toString();
+      slopeOutput.textContent = slope.toFixed(1);
+      surfaceOutput.textContent = classes[predictedIndex] ?? '';
+      confidenceOutput.textContent = `${Math.round(confidence * 100)}%`;
+      probabilities.forEach((probability, index) => {
+        const percentage = Math.round(probability * 100);
+        if (classBars[index]) classBars[index].style.width = `${percentage}%`;
+        if (classOutputs[index]) classOutputs[index].textContent = `${percentage}%`;
+      });
+      const latitude = 41.6522 + worldZ * 0.0085;
+      const longitude = -4.7287 + worldX * 0.011;
+      latitudeOutput.textContent = `${Math.abs(latitude).toFixed(4)}° ${latitude >= 0 ? 'N' : 'S'}`;
+      longitudeOutput.textContent = `${Math.abs(longitude).toFixed(4)}° ${longitude >= 0 ? 'E' : 'W'}`;
+
+      const samples = Array.from({ length: 96 }, (_, index) => {
+        const offset = (index / 95 - 0.5) * 4.8;
+        return terrainHeight([terrainX + offset, terrainZ]);
+      });
+      const rawMinimum = Math.min(...samples);
+      const rawMaximum = Math.max(...samples);
+      const confidenceBand = Math.max(0.025, (rawMaximum - rawMinimum) * (0.04 + (1 - confidence) * 0.12));
+      const minimum = rawMinimum - confidenceBand - 0.03;
+      const maximum = rawMaximum + confidenceBand + 0.03;
+      const range = Math.max(0.15, maximum - minimum);
+      const scale = window.devicePixelRatio > 1 ? Math.min(window.devicePixelRatio, 1.5) : 1;
+      const insetX = 10 * scale;
+      const insetTop = 8 * scale;
+      const insetBottom = 8 * scale;
+      const plotWidth = width - insetX * 2;
+      const plotHeight = height - insetTop - insetBottom;
+      const samplePoint = (value: number, index: number): Point => [
+        insetX + (index / (samples.length - 1)) * plotWidth,
+        insetTop + (1 - (value - minimum) / range) * plotHeight,
+      ];
+
+      context.clearRect(0, 0, width, height);
+      context.lineWidth = scale;
+      context.strokeStyle = 'rgba(21, 61, 48, 0.13)';
+      context.setLineDash([2 * scale, 4 * scale]);
+      for (let index = 1; index < 4; index += 1) {
+        const y = insetTop + (plotHeight * index) / 4;
+        context.beginPath();
+        context.moveTo(insetX, y);
+        context.lineTo(width - insetX, y);
+        context.stroke();
+      }
+
+      context.setLineDash([]);
+      context.beginPath();
+      samples.forEach((value, index) => {
+        const [x, y] = samplePoint(value + confidenceBand, index);
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      });
+      for (let index = samples.length - 1; index >= 0; index -= 1) {
+        const [x, y] = samplePoint(samples[index] - confidenceBand, index);
+        context.lineTo(x, y);
+      }
+      context.closePath();
+      context.fillStyle = 'rgba(189, 107, 67, 0.13)';
+      context.fill();
+
+      const gradient = context.createLinearGradient(0, insetTop, 0, height - insetBottom);
+      gradient.addColorStop(0, 'rgba(21, 61, 48, 0.24)');
+      gradient.addColorStop(1, 'rgba(21, 61, 48, 0.025)');
+      context.setLineDash([]);
+      context.beginPath();
+      samples.forEach((value, index) => {
+        const [x, y] = samplePoint(value, index);
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      });
+      context.lineTo(width - insetX, height - insetBottom);
+      context.lineTo(insetX, height - insetBottom);
+      context.closePath();
+      context.fillStyle = gradient;
+      context.fill();
+
+      context.beginPath();
+      samples.forEach((value, index) => {
+        const [x, y] = samplePoint(value, index);
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      });
+      context.strokeStyle = '#153d30';
+      context.lineWidth = 1.25 * scale;
+      context.stroke();
+
+      const markerIndex = Math.floor(samples.length / 2);
+      const [markerX, markerY] = samplePoint(samples[markerIndex], markerIndex);
+      context.beginPath();
+      context.moveTo(markerX, insetTop);
+      context.lineTo(markerX, height - insetBottom);
+      context.strokeStyle = 'rgba(189, 107, 67, 0.62)';
+      context.lineWidth = scale;
+      context.setLineDash([3 * scale, 3 * scale]);
+      context.stroke();
+      context.setLineDash([]);
+      context.beginPath();
+      context.arc(markerX, markerY, 3.25 * scale, 0, Math.PI * 2);
+      context.fillStyle = '#bd6b43';
+      context.fill();
+      context.strokeStyle = '#f4f0e7';
+      context.lineWidth = 1.5 * scale;
+      context.stroke();
+    };
+
+    const updateSelection = (clientX: number, clientY: number) => {
+      const bounds = hero.getBoundingClientRect();
+      selection.x = clamp((clientX - bounds.left) / bounds.width, 0, 1);
+      selection.y = clamp((clientY - bounds.top) / bounds.height, 0, 1);
+      scheduleDraw();
+    };
+
+    const finePointer = window.matchMedia('(pointer: fine)');
+    const handlePointerMove = (event: PointerEvent) => {
+      if (finePointer.matches) updateSelection(event.clientX, event.clientY);
+    };
+    const handleSamplerPointer = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse') updateSelection(event.clientX, event.clientY);
+    };
+    const handleKeydown = (event: KeyboardEvent) => {
+      const movement = event.shiftKey ? 0.08 : 0.025;
+      if (event.key === 'ArrowLeft') selection.x -= movement;
+      else if (event.key === 'ArrowRight') selection.x += movement;
+      else if (event.key === 'ArrowUp') selection.y -= movement;
+      else if (event.key === 'ArrowDown') selection.y += movement;
+      else return;
+      event.preventDefault();
+      selection.x = clamp(selection.x, 0, 1);
+      selection.y = clamp(selection.y, 0, 1);
+      scheduleDraw();
+    };
+    const handleTerrainFrame = (event: Event) => {
+      const detail = (event as CustomEvent<{ travelX: number; travelZ: number }>).detail;
+      if (!detail) return;
+      travel.x = detail.travelX;
+      travel.z = detail.travelZ;
+      scheduleDraw();
+    };
+
+    hero.addEventListener('pointermove', handlePointerMove);
+    sampler.addEventListener('pointerdown', handleSamplerPointer);
+    sampler.addEventListener('keydown', handleKeydown);
+    hero.addEventListener('hero-terrain-frame', handleTerrainFrame);
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(canvas);
+    resizeCanvas();
+    scheduleDraw();
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-terrain-sampler]')
+    .forEach(initializeTerrainSampler);
+</script>
+
+<style>
+  .hero-instrument {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    min-width: 0;
+    aspect-ratio: 0.8;
+    grid-template-rows: auto auto minmax(7.5rem, 1fr) auto auto;
+    gap: 1rem;
+    padding: 1.1rem;
+    background: rgba(244, 240, 231, 0.38);
+    backdrop-filter: blur(4px);
+    outline: none;
+    transition: border-color 180ms ease, background-color 180ms ease;
+  }
+
+  .hero-instrument:hover,
+  .hero-instrument:focus-visible {
+    border-color: color-mix(in srgb, var(--color-forest) 58%, var(--color-line));
+    background: rgba(244, 240, 231, 0.5);
+  }
+
+  .hero-instrument:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-paper), 0 0 0 4px var(--color-signal);
+  }
+
+  .sampler-header,
+  .sampler-footer,
+  .profile-scale {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--color-muted);
+    font-size: 0.53rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .sampler-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    color: var(--color-forest);
+  }
+
+  .sampler-status i {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-signal);
+    box-shadow: 0 0 0 4px rgba(189, 107, 67, 0.1);
+    animation: sample-pulse 2.8s ease-in-out infinite;
+  }
+
+  .sampler-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-line) 72%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-line) 72%, transparent);
+  }
+
+  .sampler-metrics > div {
+    min-width: 0;
+    padding: 0.75rem 0;
+  }
+
+  .sampler-metrics > div:nth-child(even) {
+    padding-left: 0.85rem;
+    border-left: 1px solid color-mix(in srgb, var(--color-line) 72%, transparent);
+  }
+
+  .sampler-metrics > div:last-child {
+    grid-column: 1 / -1;
+    padding: 0.65rem 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-line) 72%, transparent);
+    border-left: 0;
+  }
+
+  .sampler-metrics dt,
+  .profile-label {
+    color: var(--color-muted);
+    font-size: 0.48rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  .sampler-metrics dd {
+    margin: 0.28rem 0 0;
+    color: var(--color-forest);
+    font-family: var(--font-serif);
+    font-size: clamp(1.2rem, 2vw, 1.65rem);
+    line-height: 1;
+  }
+
+  .sampler-metrics dd small {
+    font-family: var(--font-sans);
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .sampler-metrics .surface-value {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-family: var(--font-sans);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .surface-value span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .surface-value strong {
+    flex: none;
+    color: var(--color-signal);
+    font-size: 0.62rem;
+  }
+
+  .class-probabilities {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+  }
+
+  .class-probabilities > div {
+    display: grid;
+    grid-template-columns: minmax(4.8rem, auto) 1fr 2rem;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--color-muted);
+    font-size: 0.45rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .class-probabilities i {
+    height: 2px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--color-forest) 12%, transparent);
+  }
+
+  .class-probabilities b {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--color-forest);
+    transition: width 160ms ease;
+  }
+
+  .class-probabilities output {
+    color: var(--color-forest);
+    font: inherit;
+    text-align: right;
+  }
+
+  .profile {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: auto minmax(5rem, 1fr) auto;
+    gap: 0.35rem;
+  }
+
+  .profile canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 5rem;
+  }
+
+  .profile-scale {
+    padding-top: 0.38rem;
+    border-top: 3px double var(--color-forest);
+    font-size: 0.48rem;
+  }
+
+  .sampler-footer {
+    color: var(--color-forest);
+    font-family: var(--font-serif);
+    font-size: 0.68rem;
+    font-weight: 520;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  .sampler-hint {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.48rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  @keyframes sample-pulse {
+    50% { box-shadow: 0 0 0 8px rgba(189, 107, 67, 0.04); transform: scale(1.16); }
+  }
+
+  @media (max-width: 900px) {
+    .hero-instrument {
+      width: min(100%, 28rem);
+      aspect-ratio: 1.2;
+      grid-template-columns: minmax(9.5rem, 0.75fr) minmax(0, 1.25fr);
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .sampler-header { grid-column: 1 / -1; }
+    .sampler-metrics { grid-column: 1; grid-row: 2; }
+    .profile { grid-column: 2; grid-row: 2; }
+    .sampler-footer { grid-column: 2; grid-row: 3; }
+    .sampler-hint { grid-column: 1; grid-row: 3; align-self: center; text-align: left; }
+  }
+
+  @media (max-width: 520px) {
+    .hero-instrument {
+      aspect-ratio: auto;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto 9rem auto auto;
+    }
+
+    .sampler-header,
+    .sampler-metrics,
+    .profile,
+    .sampler-footer,
+    .sampler-hint { grid-column: 1; grid-row: auto; }
+    .sampler-hint { text-align: center; }
+  }
+</style>

@@ -429,6 +429,7 @@ const qualityTiers = [
     let cacheAvailable = cacheProgramLinked;
     let cacheValidated = false;
     let disposed = false;
+    let lastSamplerPublish = 0;
     const debugEnabled = new URLSearchParams(window.location.search)
       .get('shaderDebug') === '1';
     const debugPanel = debugEnabled ? document.createElement('output') : null;
@@ -691,6 +692,14 @@ const qualityTiers = [
       if (query && timerExtension) {
         gl.endQuery(timerExtension.TIME_ELAPSED_EXT);
         pendingQueries.push(query);
+      }
+      const sampleTimestamp = performance.now();
+      if (sampleTimestamp - lastSamplerPublish >= 80) {
+        canvas.dispatchEvent(new CustomEvent('hero-terrain-frame', {
+          bubbles: true,
+          detail: { travelX, travelZ },
+        }));
+        lastSamplerPublish = sampleTimestamp;
       }
       debugDrawCount += 1;
     };
