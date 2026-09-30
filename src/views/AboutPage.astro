@@ -19,20 +19,9 @@ const copy = locale === 'es' ? {
   contactLabel: 'Contáctame en:',
   emailLabel: 'Correo',
   interestsLabel: 'Intereses / 02',
-  interestsTitle: 'Cosas que me gustan',
-  interestsBody: 'Una cartografía personal de ideas, disciplinas y tradiciones que exploro. Arrastra, amplía o selecciona un nodo para recorrer sus conexiones.',
-  interestsAria: 'Grafo interactivo de intereses en humanidades, literatura y lenguaje, filosofía y estética',
-  matrixLabel: 'Capacidades / 03', matrixTitle: 'Matriz de capacidades',
-  matrixColumns: ['Área', 'Stack principal', 'Herramientas de apoyo', 'Evidencia'],
-  capabilities: [
-    ['ML / GeoAI', 'Python, PyTorch, scikit-learn', 'MLflow, OpenCV', '3 proyectos'],
-    ['Geoespacial', 'GDAL, Rasterio, QGIS', 'GeoPandas, PostGIS', '6 proyectos'],
-    ['Teledetección', 'Sentinel-2, STAC', 'Planetary Computer, Copernicus', '4 proyectos'],
-    ['Nubes de puntos / 3D', 'Open3D, CloudCompare', 'Cesium, Potree', '3 proyectos'],
-    ['Ingeniería de datos', 'Python, SQL, PostgreSQL', 'Airflow, Docker', '4 proyectos'],
-    ['Web / Visualización', 'TypeScript, Astro, WebGL', 'CesiumJS, OpenLayers', '3 proyectos'],
-    ['Infraestructura', 'Docker, GitHub Actions', 'AWS, Linux', '5 proyectos'],
-  ],
+  interestsTitle: 'Cosas que me interesan',
+  interestsBody: 'Un mapa de las disciplinas técnicas y culturales que conectan mi forma de construir software: desde los fundamentos de informática y los sistemas de ML hasta los datos geoespaciales, la estética y la literatura.',
+  interestsAria: 'Grafo interactivo de intereses en informática, inteligencia artificial, ingeniería de software, datos geoespaciales, estética y literatura',
 } : {
   title: 'About',
   intro: 'I am a technical specialist focused on building systems where territory, data, and software need to understand each other.',
@@ -41,20 +30,9 @@ const copy = locale === 'es' ? {
   contactLabel: 'Contact me on:',
   emailLabel: 'Email',
   interestsLabel: 'Interests / 02',
-  interestsTitle: 'Things I like',
-  interestsBody: 'A personal map of ideas, disciplines, and traditions I explore. Drag, zoom, or select a node to trace its connections.',
-  interestsAria: 'Interactive graph of interests in humanities, literature and language, philosophy, and aesthetics',
-  matrixLabel: 'Capabilities / 03', matrixTitle: 'Capability matrix',
-  matrixColumns: ['Area', 'Core stack', 'Supporting tools', 'Evidence'],
-  capabilities: [
-    ['ML / GeoAI', 'Python, PyTorch, scikit-learn', 'MLflow, OpenCV', '3 projects'],
-    ['Geospatial', 'GDAL, Rasterio, QGIS', 'GeoPandas, PostGIS', '6 projects'],
-    ['Remote Sensing', 'Sentinel-2, STAC', 'Planetary Computer, Copernicus', '4 projects'],
-    ['Point Clouds / 3D', 'Open3D, CloudCompare', 'Cesium, Potree', '3 projects'],
-    ['Data Engineering', 'Python, SQL, PostgreSQL', 'Airflow, Docker', '4 projects'],
-    ['Web / Visualization', 'TypeScript, Astro, WebGL', 'CesiumJS, OpenLayers', '3 projects'],
-    ['Infrastructure', 'Docker, GitHub Actions', 'AWS, Linux', '5 projects'],
-  ],
+  interestsTitle: 'Things I am interested in',
+  interestsBody: 'A map of the technical and cultural disciplines that shape how I build software: from computer science fundamentals and ML systems to geospatial data, aesthetics, and literature.',
+  interestsAria: 'Interactive graph of interests in computer science, artificial intelligence, software engineering, geospatial data, aesthetics, and literature',
 };
 ---
 
@@ -98,38 +76,9 @@ const copy = locale === 'es' ? {
       <ThingsILikeGraph ariaLabel={copy.interestsAria} locale={locale} rootLabel={copy.interestsTitle} />
     </div>
   </section>
-
-  <section class="section-pad rule capability-matrix-section">
-    <div class="page-shell profile-section">
-      <p class="eyebrow">{copy.matrixLabel}</p>
-      <h2 class="profile-matrix-title">{copy.matrixTitle}</h2>
-      <div class="profile-capabilities">
-        {copy.capabilities.map(([area, core, supporting, evidence]) => (
-          <article>
-            <h3>{area}</h3>
-            <dl>
-              <div><dt>{copy.matrixColumns[1]}</dt><dd>{core}</dd></div>
-              <div><dt>{copy.matrixColumns[2]}</dt><dd>{supporting}</dd></div>
-            </dl>
-            <span>{evidence}</span>
-          </article>
-        ))}
-      </div>
-    </div>
-  </section>
 </BaseLayout>
 
 <style>
-  .profile-section > .eyebrow { width: 100%; justify-content: center; margin: 0 0 1.5rem; }
-  .profile-matrix-title { margin: 0 auto 2.5rem; color: var(--color-forest); font-family: var(--font-serif); font-size: clamp(1.55rem, 3.3vw, 2.5rem); font-weight: 480; letter-spacing: -0.04em; line-height: 1; text-align: center; white-space: nowrap; }
-  .profile-capabilities { width: min(100%, 64rem); margin-inline: auto; border-top: 1px solid var(--color-forest); }
-  .profile-capabilities article { display: grid; grid-template-columns: minmax(10rem, 0.7fr) minmax(0, 1.6fr) auto; align-items: center; gap: 1.5rem; padding-block: 0.9rem; border-bottom: 1px solid var(--color-line); }
-  .profile-capabilities h3 { margin: 0; color: var(--color-forest); font-family: var(--font-serif); font-size: 1.3rem; font-weight: 520; letter-spacing: -0.025em; }
-  .profile-capabilities dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin: 0; }
-  .profile-capabilities dl div { min-width: 0; }
-  .profile-capabilities dt { margin-bottom: 0.25rem; color: var(--color-forest-light); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-  .profile-capabilities dd { margin: 0; color: var(--color-muted); font-size: 0.76rem; line-height: 1.5; }
-  .profile-capabilities > article > span { color: var(--color-signal); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap; }
   .story-grid { display: grid; grid-template-columns: minmax(19rem, 0.8fr) 1.2fr; align-items: stretch; gap: clamp(3rem, 9vw, 9rem); }
   .portrait { min-height: 27rem; margin: 0; overflow: hidden; background: var(--color-forest); }
   .portrait :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
@@ -153,14 +102,8 @@ const copy = locale === 'es' ? {
     .portrait { height: 24rem; min-height: 0; }
     .story-contact { margin-top: 1.5rem; }
   }
-  @media (max-width: 650px) {
-    .profile-capabilities article { grid-template-columns: 1fr auto; gap: 1rem; }
-    .profile-capabilities dl { grid-column: 1 / -1; grid-row: 2; }
-    .profile-capabilities > article > span { grid-column: 2; grid-row: 1; }
-  }
   @media (max-width: 520px) {
     .story-copy .section-title,
     .interests-head .section-title { font-size: clamp(1.6rem, 7vw, 2rem); }
-    .profile-capabilities dl { grid-template-columns: 1fr; gap: 1rem; }
   }
 </style>
