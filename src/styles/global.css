@@ -144,6 +144,61 @@ button {
   border-top: 1px solid var(--color-line);
 }
 
+.paper-texture {
+  position: relative;
+  isolation: isolate;
+  background-color: #123e32;
+}
+
+.paper-texture::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-image: url('../assets/paper-grain.svg');
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  content: '';
+  filter: contrast(180%);
+  mix-blend-mode: soft-light;
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.paper-texture::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-image: url('../assets/paper-speckles.svg');
+  background-position: 0 0;
+  background-size: 256px 256px;
+  content: '';
+  mix-blend-mode: soft-light;
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.paper-texture > * {
+  position: relative;
+  z-index: 1;
+}
+
+.paper-texture--fade {
+  background: linear-gradient(
+    to bottom,
+    #123e32 0%,
+    #123e32 28%,
+    rgba(18, 62, 50, 0.86) 52%,
+    rgba(18, 62, 50, 0.45) 76%,
+    rgba(18, 62, 50, 0) 100%
+  );
+}
+
+.paper-texture--fade::before,
+.paper-texture--fade::after {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 42%, rgba(0, 0, 0, 0.72) 66%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 42%, rgba(0, 0, 0, 0.72) 66%, transparent 100%);
+}
+
 .button-primary,
 .button-secondary {
   display: inline-flex;

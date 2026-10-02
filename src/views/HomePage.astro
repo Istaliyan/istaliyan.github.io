@@ -100,7 +100,7 @@ const copy = locale === 'es' ? {
         <h1 class="display-title">{copy.heroA}<br /><em>{copy.heroB}</em></h1>
         <p class="lede">{copy.intro}</p>
         <div class="hero-actions">
-          <a class="button-primary" href={localePath(locale, '/projects')}>{copy.seeProjects}<span aria-hidden="true">↗</span></a>
+          <a class="button-primary paper-texture hero-projects-button" href={localePath(locale, '/projects')}><span>{copy.seeProjects}</span><span aria-hidden="true">↗</span></a>
         </div>
       </div>
       <TerrainSampler locale={locale} />
@@ -108,7 +108,7 @@ const copy = locale === 'es' ? {
     </div>
   </section>
 
-  <section class="section-pad rule work-section">
+  <section class="section-pad rule work-section paper-texture paper-texture--fade">
     <div class="page-shell">
       <div class="projects-head">
         <p class="eyebrow">{copy.workLabel}</p>
@@ -148,7 +148,7 @@ const copy = locale === 'es' ? {
     </div>
   </section>
 
-  <section class="section-pad collaboration-section">
+  <section class="section-pad collaboration-section paper-texture">
     <div class="page-shell collaboration-grid">
       <div class="collaboration-copy">
         <p class="eyebrow">{copy.collaborationLabel}</p>
@@ -172,30 +172,10 @@ const copy = locale === 'es' ? {
   .hero h1 em { color: var(--color-forest); font-weight: 430; }
   .hero .lede { max-width: 37rem; margin: 1.5rem 0 0; }
   .hero-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.7rem; }
+  .hero-projects-button { border-color: #123e32; background-color: #123e32; }
+  .hero-projects-button:hover { background-color: #1b4f40; }
   .hero-foot { position: absolute; z-index: 2; right: 0; bottom: 1rem; left: 0; display: flex; justify-content: space-between; color: var(--color-muted); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; }
-  .work-section {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    background: linear-gradient(
-      to bottom,
-      var(--color-forest) 0%,
-      rgba(21, 61, 48, 0.88) 18%,
-      rgba(21, 61, 48, 0.34) 46%,
-      transparent 74%
-    );
-  }
-  .work-section::before {
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(244, 240, 231, 0.34) 0 0.7px, transparent 0.9px);
-    background-size: 5px 5px;
-    content: "";
-    mask-image: linear-gradient(to bottom, black, transparent 58%);
-    opacity: 0.22;
-    pointer-events: none;
-  }
+  .work-section { overflow: hidden; }
   .profile-section > .eyebrow { width: min(100%, 64rem); justify-content: center; margin: 0 auto 1.5rem; }
   .profile-matrix-title { margin: 0 auto 2.5rem; color: var(--color-forest); font-family: var(--font-serif); font-size: clamp(1.55rem, 3.3vw, 2.5rem); font-weight: 480; letter-spacing: -0.04em; line-height: 1; text-align: center; white-space: nowrap; }
   .profile-capabilities { width: min(100%, 64rem); margin-inline: auto; border-top: 1px solid var(--color-forest); }
@@ -225,7 +205,7 @@ const copy = locale === 'es' ? {
   .projects-more { display: flex; justify-content: center; margin-top: 2.2rem; }
   .text-link { display: flex; align-items: center; gap: 1rem; color: var(--color-forest); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-decoration: none; text-transform: uppercase; }
   .text-link:hover { text-decoration: underline; text-underline-offset: 0.3rem; }
-  .collaboration-section { padding-block: clamp(2.5rem, 4vw, 3.5rem); background-color: var(--color-forest); color: var(--color-paper); }
+  .collaboration-section { padding-block: clamp(2.5rem, 4vw, 3.5rem); }
   .collaboration-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem); align-items: center; gap: clamp(2.5rem, 7vw, 7rem); }
   .collaboration-copy .eyebrow { margin: 0 0 0.85rem; color: color-mix(in srgb, var(--color-paper) 68%, transparent); font-size: 0.6rem; }
   .collaboration-copy .section-title { max-width: none; color: var(--color-paper); font-size: clamp(1.65rem, 2.8vw, 2.45rem); }
