@@ -33,11 +33,13 @@ const copy = locale === 'es' ? {
   projectLinks: 'Enlaces del proyecto',
   repository: 'Repositorio',
   liveDemo: 'Demo en vivo',
+  enlargedImage: 'Imagen ampliada. Haz clic en la imagen o fuera de ella para cerrarla.',
 } : {
   index: 'Contents',
   projectLinks: 'Project links',
   repository: 'Repository',
   liveDemo: 'Live demo',
+  enlargedImage: 'Enlarged image. Click the image or outside it to close.',
 };
 ---
 
@@ -76,6 +78,11 @@ const copy = locale === 'es' ? {
       <article class="case-study">
         <Content />
       </article>
+      <dialog class="image-lightbox" data-image-lightbox aria-label={copy.enlargedImage}>
+        <div class="image-lightbox-content">
+          <img data-image-lightbox-image alt="" />
+        </div>
+      </dialog>
     </div>
   </section>
 
@@ -138,6 +145,12 @@ const copy = locale === 'es' ? {
   .case-study :global(blockquote p) { color: var(--color-forest); font-family: var(--font-serif); font-size: 1.2rem; }
   .case-study :global(img) { display: block; width: 100%; height: auto; margin-block: 2.5rem; border: 1px solid var(--color-line); }
   .case-study :global(img[src*=".svg"]) { border: none; }
+  .case-study :global(.zoomable-image) { cursor: zoom-in; }
+  .image-lightbox { width: 100vw; max-width: none; height: 100vh; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; }
+  .image-lightbox[open] { display: grid; place-items: center; }
+  .image-lightbox::backdrop { background: rgb(11 22 18 / 0.8); }
+  .image-lightbox-content { display: grid; width: fit-content; justify-items: center; background: var(--color-paper); }
+  .image-lightbox img { display: block; max-width: 100%; max-height: 96vh; object-fit: contain; cursor: zoom-out; }
   .case-study :global(iframe) { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; margin-block: 2.5rem; border: 1px solid var(--color-line); }
   .case-study :global(pre) { max-width: 100%; margin: 2rem 0; padding: 1.25rem; overflow-x: auto; border: 1px solid color-mix(in srgb, var(--color-forest-light) 60%, black); font-size: 0.86rem; line-height: 1.7; tab-size: 2; }
   .case-study :global(:not(pre) > code) { padding: 0.12em 0.38em; background: var(--color-paper-deep); color: var(--color-forest); font-size: 0.9em; }
@@ -160,3 +173,33 @@ const copy = locale === 'es' ? {
     .project-actions { align-items: start; flex-direction: column; }
   }
 </style>
+
+<script is:inline>
+  const lightbox = document.querySelector('[data-image-lightbox]');
+  const lightboxImage = lightbox?.querySelector('[data-image-lightbox-image]');
+
+  if (lightbox instanceof HTMLDialogElement && lightboxImage instanceof HTMLImageElement) {
+    document.querySelectorAll('.case-study img').forEach((image) => {
+      const openLightbox = () => {
+        lightboxImage.src = image.currentSrc || image.src;
+        lightboxImage.alt = image.alt;
+        lightbox.showModal();
+      };
+      image.classList.add('zoomable-image');
+      image.tabIndex = 0;
+      image.setAttribute('role', 'button');
+      image.addEventListener('click', openLightbox);
+      image.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openLightbox();
+        }
+      });
+    });
+
+    lightboxImage.addEventListener('click', () => lightbox.close());
+    lightbox.addEventListener('click', (event) => {
+      if (event.target !== lightboxImage) lightbox.close();
+    });
+  }
+</script>
