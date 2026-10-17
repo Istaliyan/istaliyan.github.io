@@ -17,7 +17,7 @@ const summary = data.summary[locale];
 const year = data.date.slice(0, 4);
 ---
 
-<article class="project-card blueprint-card" data-project-card data-tags={JSON.stringify(data.tags)}>
+<article class="project-card blueprint-card" data-project-card data-reveal data-reveal-delay={Math.min(index, 3) * 85} data-tags={JSON.stringify(data.tags)}>
   <div class="project-index" aria-hidden="true">P—{String(index + 1).padStart(2, '0')}</div>
   <div class="project-body">
     <div class="project-meta">
@@ -52,6 +52,7 @@ const year = data.date.slice(0, 4);
     box-shadow: 0 1.2rem 3rem rgba(23, 35, 29, 0.06);
     transform: translateY(-4px);
   }
+  .project-card[hidden] { display: none; }
   .project-index {
     padding-top: 1.5rem;
     border-right: 1px solid var(--color-line);

@@ -97,7 +97,7 @@ const copy = locale === 'es' ? {
     <div class="hero page-shell">
       <div class="hero-copy">
         <div class="eyebrow">{copy.status}</div>
-        <h1 class="display-title">{copy.heroA}<br /><em>{copy.heroB}</em></h1>
+        <h1 class="display-title"><span class="hero-line">{copy.heroA}</span><em class="hero-line">{copy.heroB}</em></h1>
         <p class="lede">{copy.intro}</p>
         <div class="hero-actions">
           <a class="button-primary paper-texture hero-projects-button" href={localePath(locale, '/projects')}><span>{copy.seeProjects}</span><span aria-hidden="true">↗</span></a>
@@ -126,8 +126,8 @@ const copy = locale === 'es' ? {
       <p class="eyebrow">{copy.profileLabel}</p>
       <h2 class="profile-matrix-title">{copy.profileMatrixTitle}</h2>
       <div class="profile-capabilities">
-        {copy.capabilities.map(([area, core, supporting, evidence]) => (
-          <article>
+        {copy.capabilities.map(([area, core, supporting, evidence], index) => (
+          <article data-reveal data-reveal-delay={index * 45}>
             <div class="capability-heading">
               <Icon class="capability-icon" name={capabilityIcons[area]} size="1.3rem" aria-hidden="true" focusable="false" />
               <h3>{area}</h3>
@@ -168,6 +168,18 @@ const copy = locale === 'es' ? {
   .hero-shell { position: relative; isolation: isolate; overflow: hidden; }
   .hero { position: relative; z-index: 1; display: grid; min-height: min(47rem, calc(100vh - 4.75rem)); grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.58fr); align-items: center; gap: clamp(2.5rem, 6vw, 6rem); padding-block: 3.5rem 3rem; }
   .hero-copy { position: relative; z-index: 2; }
+  .hero-line { display: block; }
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-copy > .eyebrow { animation: hero-enter 650ms both; }
+    .hero-line { animation: hero-enter 850ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 90ms; }
+    .hero-line + .hero-line { animation-delay: 210ms; }
+    .hero-copy > .lede { animation: hero-enter 750ms 320ms both; }
+    .hero-actions { animation: hero-enter 750ms 430ms both; }
+    .hero-copy:focus-within .hero-actions { animation: none; }
+    .profile-capabilities article:hover :global(.capability-icon) { animation: icon-nod 460ms ease; }
+  }
+  @keyframes hero-enter { from { opacity: 0; translate: 0 20px; } to { opacity: 1; translate: 0 0; } }
+  @keyframes icon-nod { 40% { transform: translateY(-3px) rotate(-8deg); } 75% { transform: translateY(1px) rotate(3deg); } }
   .hero h1 { margin-top: 1.25rem; }
   .hero h1 em { color: var(--color-forest); font-weight: 430; }
   .hero .lede { max-width: 37rem; margin: 1.5rem 0 0; }
@@ -211,10 +223,12 @@ const copy = locale === 'es' ? {
   .collaboration-copy .section-title { max-width: none; color: var(--color-paper); font-size: clamp(1.65rem, 2.8vw, 2.45rem); }
   .collaboration-copy > p:last-child { max-width: 39rem; margin: 0.8rem 0 0; color: color-mix(in srgb, var(--color-paper) 70%, transparent); font-size: 0.82rem; line-height: 1.65; }
   .collaboration-email { position: relative; display: grid; gap: 0.45rem; padding: 1rem 3rem 1rem 1rem; border: 1px solid color-mix(in srgb, var(--color-paper) 28%, transparent); color: var(--color-paper); text-decoration: none; transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease; }
-  .collaboration-email::before { position: absolute; top: -1px; left: 1rem; width: 2.2rem; height: 1px; background: var(--color-signal); content: ""; }
+  .collaboration-email::before { position: absolute; top: -1px; left: 1rem; width: 2.2rem; max-width: calc(100% - 2rem); height: 1px; background: var(--color-signal); content: ""; transition: width 350ms ease; }
+  .collaboration-email:is(:hover, :focus-visible)::before { width: calc(100% - 2rem); }
+  .collaboration-email:is(:hover, :focus-visible) .collaboration-arrow { transform: translate(3px, calc(-50% - 3px)); }
   .collaboration-email > span:first-child { color: color-mix(in srgb, var(--color-paper) 62%, transparent); font-size: 0.55rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; }
   .collaboration-email strong { overflow-wrap: anywhere; font-family: var(--font-serif); font-size: clamp(1rem, 1.7vw, 1.3rem); font-weight: 480; letter-spacing: -0.02em; }
-  .collaboration-arrow { position: absolute; top: 50%; right: 1rem; color: var(--color-signal); font-size: 1rem; transform: translateY(-50%); }
+  .collaboration-arrow { position: absolute; top: 50%; right: 1rem; color: var(--color-signal); font-size: 1rem; transform: translateY(-50%); transition: transform 250ms ease; }
   .collaboration-email:hover { border-color: var(--color-paper); background: color-mix(in srgb, var(--color-paper) 8%, transparent); transform: translateY(-2px); }
   @media (max-width: 900px) {
     .hero { min-height: auto; grid-template-columns: 1fr; }

@@ -65,15 +65,18 @@ const copy = locale === 'es' ? {
 
   <section class="section-pad rule">
     <div class="page-shell content-layout">
-      <nav class="section-index" aria-label={copy.index}>
+      <nav class="section-index" data-section-index aria-label={copy.index}>
         <p class="eyebrow">{copy.index}</p>
-        <ol>
-          {sections.map((section) => (
-            <li>
-              <a href={`#${section.slug}`}>{section.text}</a>
-            </li>
-          ))}
-        </ol>
+        <div class="section-index-track">
+          <span class="section-index-marker" aria-hidden="true"></span>
+          <ol>
+            {sections.map((section) => (
+              <li>
+                <a href={`#${section.slug}`}>{section.text}</a>
+              </li>
+            ))}
+          </ol>
+        </div>
       </nav>
       <article class="case-study">
         <Content />
@@ -120,6 +123,10 @@ const copy = locale === 'es' ? {
   .section-index { position: sticky; top: 2rem; grid-column: 3; grid-row: 1; align-self: start; padding-left: clamp(1.5rem, 3vw, 3rem); }
   .section-index .eyebrow { margin: 0 0 1.5rem; }
   .section-index ol { margin: 0; padding: 0; list-style: none; }
+  .section-index-track { position: relative; }
+  .section-index-marker { position: absolute; z-index: 2; top: 0.42rem; left: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--color-signal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-signal) 15%, transparent); opacity: 0; pointer-events: none; transform: translateY(var(--index-offset, 0px)); transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease; }
+  .section-index[data-active] .section-index-marker { opacity: 1; }
+  .section-index a[aria-current="location"] { color: var(--color-forest); }
   .section-index li { position: relative; padding: 0 0 1.4rem 1.15rem; }
   .section-index li:last-child { padding-bottom: 0; }
   .section-index li::before { position: absolute; z-index: 1; top: 0.42rem; left: 0; width: 7px; height: 7px; border: 1px solid var(--color-signal); border-radius: 50%; background: var(--color-paper); content: ""; }
@@ -173,6 +180,45 @@ const copy = locale === 'es' ? {
     .project-actions { align-items: start; flex-direction: column; }
   }
 </style>
+
+<script>
+  const index = document.querySelector<HTMLElement>('[data-section-index]');
+  if (index) {
+    const links = Array.from(index.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
+    const sections = links.flatMap((link) => {
+      const heading = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+      return heading ? [{ link, heading }] : [];
+    });
+    let active: HTMLAnchorElement | undefined;
+    const update = () => {
+      const readingLine = window.innerHeight * 0.28;
+      let current = sections[0];
+      for (const section of sections) {
+        if (section.heading.getBoundingClientRect().top <= readingLine) current = section;
+      }
+      if (!current) return;
+      if (active !== current.link) {
+        links.forEach((link) => link.removeAttribute('aria-current'));
+        current.link.setAttribute('aria-current', 'location');
+        active = current.link;
+      }
+      index.dataset.active = '';
+      index.style.setProperty('--index-offset', `${current.link.parentElement?.offsetTop ?? 0}px`);
+    };
+    let scheduled = false;
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => { scheduled = false; update(); });
+    };
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    // Font loading and expanding images can move the article headings.
+    const article = document.querySelector('.case-study');
+    if (article && 'ResizeObserver' in window) new ResizeObserver(schedule).observe(article);
+    update();
+  }
+</script>
 
 <script is:inline>
   const lightbox = document.querySelector('[data-image-lightbox]');

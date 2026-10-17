@@ -35,12 +35,26 @@ const tags = [...new Set(projects.flatMap((project) => project.data.tags))].sort
       const buttons = section.querySelectorAll<HTMLButtonElement>('[data-filter]');
       const cards = section.querySelectorAll<HTMLElement>('[data-project-card]');
       const count = section.querySelector<HTMLElement>('[data-visible-count]');
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const animations = new Set<Animation>();
+      reducedMotion.addEventListener('change', () => {
+        if (reducedMotion.matches) animations.forEach((animation) => animation.cancel());
+      });
 
       const applyFilter = (requested: string, updateUrl = false) => {
         const activeButton = Array.from(buttons).find((button) => (
           button.dataset.filter?.toLocaleLowerCase() === requested.toLocaleLowerCase()
         )) ?? buttons[0];
         const selected = activeButton?.dataset.filter ?? 'all';
+        const previous = new Map(Array.from(cards)
+          .filter((card) => !card.hidden)
+          .map((card) => [card, card.getBoundingClientRect()]));
+        animations.forEach((animation) => animation.cancel());
+        animations.clear();
+        if (updateUrl) cards.forEach((card) => {
+          card.dataset.revealComplete = '';
+          card.getAnimations().forEach((animation) => animation.cancel());
+        });
         let visible = 0;
 
         buttons.forEach((button) => (
@@ -52,6 +66,28 @@ const tags = [...new Set(projects.flatMap((project) => project.data.tags))].sort
           card.hidden = !show;
           if (show) visible += 1;
         });
+
+        if (updateUrl && !reducedMotion.matches) {
+          // Measure after filtering, then animate surviving cards from their old positions.
+          const positions = Array.from(cards).filter((card) => !card.hidden)
+            .map((card) => ({ card, bounds: card.getBoundingClientRect() }));
+          positions.forEach(({ card, bounds }, index) => {
+            const before = previous.get(card);
+            const animation = card.animate([
+              { translate: before ? `${before.left - bounds.left}px ${before.top - bounds.top}px` : '0 16px', opacity: before ? 1 : 0 },
+              { translate: '0 0', opacity: 1 },
+            ], {
+              duration: 420,
+              delay: before ? 0 : index * 45,
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              fill: 'backwards',
+            });
+            animations.add(animation);
+            const forget = () => animations.delete(animation);
+            animation.addEventListener('finish', forget, { once: true });
+            animation.addEventListener('cancel', forget, { once: true });
+          });
+        }
 
         if (count) count.textContent = String(visible);
         if (updateUrl) {

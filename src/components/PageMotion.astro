@@ -1,0 +1,38 @@
+<script>
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const running = new Set<Animation>();
+
+  // Content stays readable if JavaScript or IntersectionObserver is unavailable.
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const element = entry.target as HTMLElement;
+        observer.unobserve(element);
+        if (reducedMotion.matches || element.hidden || element.dataset.revealComplete !== undefined
+          || element.contains(document.activeElement)) return;
+        element.dataset.revealComplete = '';
+        const animation = element.animate([
+          { opacity: 0, translate: '0 22px' },
+          { opacity: 1, translate: '0 0' },
+        ], {
+          duration: 620,
+          delay: Number(element.dataset.revealDelay ?? 0),
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'backwards',
+        });
+        running.add(animation);
+        const forget = () => running.delete(animation);
+        animation.addEventListener('finish', forget, { once: true });
+        animation.addEventListener('cancel', forget, { once: true });
+        element.addEventListener('focusin', () => animation.cancel(), { once: true });
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((element) => observer.observe(element));
+  }
+
+  reducedMotion.addEventListener('change', () => {
+    if (reducedMotion.matches) running.forEach((animation) => animation.cancel());
+  });
+
+</script>
