@@ -3,12 +3,13 @@
   const running = new Set<Animation>();
 
   // Content stays readable if JavaScript or IntersectionObserver is unavailable.
-  if ('IntersectionObserver' in window) {
+  if ('IntersectionObserver' in window && 'animate' in HTMLElement.prototype && !reducedMotion.matches) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         const element = entry.target as HTMLElement;
         observer.unobserve(element);
+        delete element.dataset.revealPending;
         if (reducedMotion.matches || element.hidden || element.dataset.revealComplete !== undefined
           || element.contains(document.activeElement)) return;
         element.dataset.revealComplete = '';
@@ -28,7 +29,25 @@
         element.addEventListener('focusin', () => animation.cancel(), { once: true });
       });
     }, { threshold: 0.08 });
-    document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((element) => observer.observe(element));
+    document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((element) => {
+      if (element.dataset.revealComplete !== undefined || element.contains(document.activeElement)) return;
+      // Hide before observing so the first visible frame is the animation's first frame.
+      element.dataset.revealPending = '';
+      element.addEventListener('focusin', () => {
+        delete element.dataset.revealPending;
+        element.dataset.revealComplete = '';
+        observer.unobserve(element);
+      }, { once: true });
+      observer.observe(element);
+    });
+
+    reducedMotion.addEventListener('change', () => {
+      if (!reducedMotion.matches) return;
+      observer.disconnect();
+      document.querySelectorAll<HTMLElement>('[data-reveal-pending]').forEach((element) => {
+        delete element.dataset.revealPending;
+      });
+    });
   }
 
   reducedMotion.addEventListener('change', () => {
@@ -36,3 +55,11 @@
   });
 
 </script>
+
+<style is:global>
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal-pending]:not([data-reveal-complete]):not(:focus-within) {
+      opacity: 0;
+    }
+  }
+</style>
